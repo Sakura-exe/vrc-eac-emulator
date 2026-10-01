@@ -19,7 +19,24 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git
+          sudo apt-get install -y cmake make g++ gcc git patch
+
+      - name: Patch CMakeLists to disable crashlog on Linux
+        run: |
+          # Patch main CMakeLists.txt to disable crashlog on Linux
+          sed -i '/FetchContent_Declare(crashlog/{
+            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+          a\  endif()
+          }' CMakeLists.txt
+
+          # Also patch libhv's CMakeLists if it includes crashlog
+          # Find and patch libhv's CMakeLists.txt if it exists in submodules
+          if [ -f "_deps/libhv-src/CMakeLists.txt" ]; then
+            sed -i '/FetchContent_Declare(crashlog/{
+              i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            a\  endif()
+            }' _deps/libhv-src/CMakeLists.txt
+          fi
 
       - name: Configure CMake (Headless)
         run: |
@@ -29,7 +46,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-headless \
             -DBUILD_HEADLESS=ON \
-            -DCRASHLOG=OFF \
             -DCMAKE_CXX_FLAGS="-DEAC_HEADLESS -O3 -pipe -fomit-frame-pointer"
 
       - name: Build
@@ -65,7 +81,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git
+          sudo apt-get install -y cmake make g++ gcc git patch
+
+      - name: Patch CMakeLists to disable crashlog on Linux
+        run: |
+          # Patch main CMakeLists.txt to disable crashlog on Linux
+          sed -i '/FetchContent_Declare(crashlog/{
+            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+          a\  endif()
+          }' CMakeLists.txt
 
       - name: Configure CMake (Standard)
         run: |
