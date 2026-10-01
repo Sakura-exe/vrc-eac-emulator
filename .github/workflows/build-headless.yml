@@ -19,46 +19,27 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git
+          sudo apt-get install -y cmake make g++ gcc git patch
 
-      - name: First CMake configure (fetches submodules like crashlog)
+      - name: Patch CMakeLists to disable crashlog on Linux (before first configure)
         run: |
-          mkdir -p build-headless
-          cd build-headless
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-headless \
-            -DBUILD_HEADLESS=ON \
-            -DCMAKE_CXX_FLAGS="-DEAC_HEADLESS -O3 -pipe -fomit-frame-pointer"
-
-      - name: Patch crashlog.cpp to disable on Linux (after FetchContent)
-        run: |
-          find . -name "crashlog.cpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            # Wrap entire file in #ifdef _WIN32 / #endif
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          # Also patch crashlog.hpp if it exists
-          find . -name "crashlog.hpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          # Patch win64 parser files
-          find . -path "*/win64/*.cpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          find . -path "*/win64/*.hpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
+          # Patch main CMakeLists.txt to disable crashlog on Linux
+          sed -i '/FetchContent_Declare(crashlog/{
+            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+          a\  endif()
+          }' CMakeLists.txt
+          
+          # Also patch libhv's CMakeLists.txt if it fetches crashlog
+          if [ -f "_deps/libhv-src/CMakeLists.txt" ]; then
+            sed -i '/FetchContent_Declare(crashlog/{
+              i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            a\  endif()
+            }' _deps/libhv-src/CMakeLists.txt
+          fi
 
       - name: Configure CMake (Headless)
         run: |
+          mkdir -p build-headless
           cd build-headless
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
@@ -99,41 +80,25 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git
+          sudo apt-get install -y cmake make g++ gcc git patch
 
-      - name: First CMake configure (fetches submodules)
+      - name: Patch CMakeLists to disable crashlog on Linux
         run: |
-          mkdir -p build-standard
-          cd build-standard
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard
-
-      - name: Patch crashlog to disable on Linux
-        run: |
-          find . -name "crashlog.cpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          find . -name "crashlog.hpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          find . -path "*/win64/*.cpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
-          find . -path "*/win64/*.hpp" -type f 2>/dev/null | while read f; do
-            echo "Patching $f"
-            sed -i '1i#ifdef _WIN32' "$f"
-            echo "#endif" >> "$f"
-          done
+          sed -i '/FetchContent_Declare(crashlog/{
+            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+          a\  endif()
+          }' CMakeLists.txt
+          
+          if [ -f "_deps/libhv-src/CMakeLists.txt" ]; then
+            sed -i '/FetchContent_Declare(crashlog/{
+              i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            a\  endif()
+            }' _deps/libhv-src/CMakeLists.txt
+          fi
 
       - name: Configure CMake (Standard)
         run: |
+          mkdir -p build-standard
           cd build-standard
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
