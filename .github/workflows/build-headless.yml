@@ -1,0 +1,97 @@
+name: Build Headless EAC Emulator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-headless:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake make g++ gcc git
+
+      - name: Configure CMake (Headless)
+        run: |
+          mkdir -p build-headless
+          cd build-headless
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-headless \
+            -DBUILD_HEADLESS=ON \
+            -DCMAKE_CXX_FLAGS="-DEAC_HEADLESS -O3 -pipe -fomit-frame-pointer"
+
+      - name: Build
+        run: |
+          cd build-headless
+          make -j$(nproc)
+
+      - name: Install
+        run: |
+          cd build-headless
+          make install
+
+      - name: Verify build
+        run: |
+          ls -la /tmp/vrc-eac-headless/bin/version.dll
+          file /tmp/vrc-eac-headless/bin/version.dll
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: headless-version-dll
+          path: /tmp/vrc-eac-headless/bin/version.dll
+          retention-days: 30
+
+  build-standard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake make g++ gcc git
+
+      - name: Configure CMake (Standard)
+        run: |
+          mkdir -p build-standard
+          cd build-standard
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard
+
+      - name: Build
+        run: |
+          cd build-standard
+          make -j$(nproc)
+
+      - name: Install
+        run: |
+          cd build-standard
+          make install
+
+      - name: Verify build
+        run: |
+          ls -la /tmp/vrc-eac-standard/bin/version.dll
+          file /tmp/vrc-eac-standard/bin/version.dll
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: standard-version-dll
+          path: /tmp/vrc-eac-standard/bin/version.dll
+          retention-days: 30
