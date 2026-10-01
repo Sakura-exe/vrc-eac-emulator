@@ -29,6 +29,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-headless \
             -DBUILD_HEADLESS=ON \
+            -DCRASHLOG=OFF \
             -DCMAKE_CXX_FLAGS="-DEAC_HEADLESS -O3 -pipe -fomit-frame-pointer"
 
       - name: Build
@@ -72,7 +73,8 @@ jobs:
           cd build-standard
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard
+            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard \
+            -DCRASHLOG=OFF
 
       - name: Build
         run: |
