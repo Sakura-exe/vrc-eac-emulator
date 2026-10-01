@@ -19,24 +19,25 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git patch
+          sudo apt-get install -y cmake make g++ gcc git
 
-      - name: Patch CMakeLists to disable crashlog on Linux
+      - name: Configure CMake (Headless)
         run: |
-          # Patch main CMakeLists.txt to disable crashlog on Linux
-          sed -i '/FetchContent_Declare(crashlog/{
-            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-          a\  endif()
-          }' CMakeLists.txt
+          mkdir -p build-headless
+          cd build-headless
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-headless \
+            -DBUILD_HEADLESS=ON \
+            -DCMAKE_CXX_FLAGS="-DEAC_HEADLESS -O3 -pipe -fomit-frame-pointer"
 
-          # Also patch libhv's CMakeLists if it includes crashlog
-          # Find and patch libhv's CMakeLists.txt if it exists in submodules
-          if [ -f "_deps/libhv-src/CMakeLists.txt" ]; then
-            sed -i '/FetchContent_Declare(crashlog/{
-              i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            a\  endif()
-            }' _deps/libhv-src/CMakeLists.txt
-          fi
+      - name: Patch crashlog.cpp to disable on Linux
+        run: |
+          find . -name "crashlog.cpp" -type f 2>/dev/null | while read f; do
+            echo "Patching $f"
+            sed -i '1i#ifdef _WIN32' "$f"
+            echo "#endif" >> "$f"
+          done
 
       - name: Configure CMake (Headless)
         run: |
@@ -81,15 +82,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake make g++ gcc git patch
-
-      - name: Patch CMakeLists to disable crashlog on Linux
-        run: |
-          # Patch main CMakeLists.txt to disable crashlog on Linux
-          sed -i '/FetchContent_Declare(crashlog/{
-            i\if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
-          a\  endif()
-          }' CMakeLists.txt
+          sudo apt-get install -y cmake make g++ gcc git
 
       - name: Configure CMake (Standard)
         run: |
@@ -97,8 +90,7 @@ jobs:
           cd build-standard
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard \
-            -DCRASHLOG=OFF
+            -DCMAKE_INSTALL_PREFIX=/tmp/vrc-eac-standard
 
       - name: Build
         run: |
